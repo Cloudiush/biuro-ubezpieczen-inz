@@ -32,7 +32,7 @@ const Home = () => {
           <div className="feature-item">
             <Zap size={50} color="var(--accent)" style={{ marginBottom: '20px' }} />
             <h3>Szybkość</h3>
-            <p>Kalkulacja w 30 sekund. Brak zbędnych formalności i pytań o rozmiar buta.</p>
+            <p>Kalkulacja w 30 sekund. Brak zbędnych formalności.</p>
           </div>
           
           <div className="feature-item">

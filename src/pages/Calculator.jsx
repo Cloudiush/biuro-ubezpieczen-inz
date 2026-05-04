@@ -1,213 +1,172 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { calculatePremium } from '../utils/calculateOc';
-import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 
-const currentYear = 2026;
-const YEARS = Array.from({ length: currentYear - 1950 + 1 }, (_, i) => currentYear - i);
-
-const schema = yup.object({
-  carYear: yup.number().typeError('Wybierz rok').required('Wymagane'),
-  driverAge: yup.number().typeError('Podaj wiek').min(18, 'Min. 18 lat').max(99).required('Wymagane'),
-  engineType: yup.string().required('Wybierz paliwo'),
-  engineCapacity: yup.string().test('is-required', 'Wybierz pojemność', function(value) {
-      const { engineType } = this.parent;
-      if (engineType === 'electric') return true;
-      return !!value;
-    }),
-  safeDrivingYears: yup.number().min(0).max(60).required(),
-  insuranceType: yup.string().required('Wybierz pakiet')
-}).required();
+const popularBrands = [
+  "Audi", "BMW", "Fiat", "Ford", "Honda", "Hyundai", "Kia", 
+  "Mazda", "Mercedes-Benz", "Opel", "Peugeot", "Renault", 
+  "Seat", "Skoda", "Toyota", "Volkswagen", "Volvo"
+];
 
 const Calculator = () => {
-  const [result, setResult] = useState(null);
-  const [savedId, setSavedId] = useState(null);
-  
-  const { user } = useAuth();
-  
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
+  const currentYear = new Date().getFullYear();
+
+  const [formData, setFormData] = useState({
+    brand: 'Toyota',
+    carModel: '',
+    year: '2015',
+    engine: '1600',
+    driverAge: '30',
+    licenseYear: (currentYear - 5).toString(),
+    claims: '0'
   });
+  
+  const [models, setModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const selectedEngineType = watch("engineType");
-
-  const onSubmit = async (data) => {
-    const calculatedPrice = calculatePremium(data);
-    setResult(calculatedPrice);
-    setSavedId(null);
-
-    if (user) {
+  useEffect(() => {
+    const fetchModels = async () => {
+      setLoadingModels(true);
       try {
-        const docRef = await addDoc(collection(db, "offers"), {
-          uid: user.uid,
-          email: user.email,
-          price: calculatedPrice,
-          carYear: data.carYear,
-          engineType: data.engineType,
-          createdAt: serverTimestamp()
-        });
-        setSavedId(docRef.id);
-      } catch (e) {
-        console.error(e);
+        const response = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/${formData.brand}?format=json`);
+        const data = await response.json();
+        const uniqueModels = [...new Set(data.Results.map(item => item.Model_Name))].sort();
+        setModels(uniqueModels);
+        if (uniqueModels.length > 0) setFormData(prev => ({ ...prev, carModel: uniqueModels[0] }));
+      } catch (error) {
+        setModels(["Brak danych"]);
+      } finally {
+        setLoadingModels(false);
       }
-    }
+    };
+    fetchModels();
+  }, [formData.brand]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const preventMinus = (e) => {
-    if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+  const minLicenseYear = currentYear - parseInt(formData.driverAge || 0) + 18;
+  const isLicenseValid = parseInt(formData.licenseYear) >= minLicenseYear && parseInt(formData.licenseYear) <= currentYear;
+
+  const calculatePremium = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult(null);
+    
+    setTimeout(() => {
+      let basePrice = 1200;
+      const carAge = currentYear - parseInt(formData.year);
+      
+      if (carAge <= 2) basePrice += 800;
+      else if (carAge > 2 && carAge <= 8) basePrice -= 150;
+      else if (carAge > 15) basePrice += 300;
+
+      const experience = currentYear - parseInt(formData.licenseYear);
+      if (parseInt(formData.driverAge) < 26) basePrice *= 1.5;
+      if (experience > 10) basePrice -= 200;
+
+      const engineSize = parseInt(formData.engine);
+      if (engineSize > 2500) basePrice += 500;
+      else if (engineSize > 1900) basePrice += 200;
+      else if (engineSize < 1200) basePrice -= 100;
+
+      const claimsCount = parseInt(formData.claims);
+      if (claimsCount === 0) basePrice *= 0.9;
+      else basePrice += (claimsCount * 400);
+
+      if (['BMW', 'Audi', 'Mercedes-Benz', 'Volvo'].includes(formData.brand)) basePrice += 400;
+
+      setResult(Math.round(basePrice));
+      setLoading(false);
+    }, 1200);
+  };
+
+  const dynamicCardStyle = {
+    background: 'var(--bg-secondary)',
+    color: 'var(--text-primary)',
+    padding: '30px',
+    borderRadius: '12px',
+    border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+    textAlign: 'left'
+  };
+
+  const dynamicInputStyle = {
+    padding: '12px',
+    borderRadius: '6px',
+    border: '1px solid var(--text-muted, #555)',
+    fontSize: '1rem',
+    width: '100%',
+    marginBottom: '15px',
+    backgroundColor: 'var(--bg-primary)',
+    color: 'var(--text-primary)'
   };
 
   return (
-    <div className="container" style={{ marginTop: '40px', marginBottom: '80px' }}>
-      
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Kalkulator OC/AC</h1>
-        <p style={{ color: 'var(--text-muted)' }}>
-          {user ? 
-            <span>Zalogowany jako: <strong>{user.email}</strong>. Twoja oferta zostanie zapisana.</span> 
-            : "Zaloguj się, aby zapisać historię wycen."}
-        </p>
-      </div>
+    <div className="container" style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 className="anim-slide-up" style={{ color: 'var(--secondary)', marginBottom: '10px', textAlign: 'center' }}>
+        Kalkulator OC/AC
+      </h1>
+      <p className="anim-slide-up delay-100" style={{ color: 'var(--text-muted)', marginBottom: '40px', textAlign: 'center' }}>
+        Wypełnij poniższe dane, aby otrzymać precyzyjną wycenę składki ubezpieczeniowej.
+      </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="calc-form">
-        
-        <div className="form-group">
-          <label>Rok produkcji pojazdu</label>
-          <select {...register("carYear")}>
-            <option value="">-- Wybierz rok --</option>
-            {YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
+      <div className="anim-slide-up delay-200" style={dynamicCardStyle}>
+        <form onSubmit={calculatePremium}>
+          <p style={{fontWeight: 'bold', marginBottom: '5px'}}>Dane Pojazdu</p>
+          
+          <label style={{fontSize: '0.9rem'}}>Marka pojazdu</label>
+          <select name="brand" value={formData.brand} onChange={handleChange} style={dynamicInputStyle}>
+            {popularBrands.map(brand => <option key={brand} value={brand}>{brand}</option>)}
           </select>
-          <p className="error-msg">{errors.carYear?.message}</p>
-        </div>
 
-        <div className="form-group">
-          <label>Wiek kierowcy</label>
+          <label style={{fontSize: '0.9rem'}}>Model pojazdu</label>
+          <select name="carModel" value={formData.carModel} onChange={handleChange} style={dynamicInputStyle} disabled={loadingModels}>
+            {loadingModels ? <option>Pobieranie...</option> : models.map(model => <option key={model} value={model}>{model}</option>)}
+          </select>
+
+          <label style={{fontSize: '0.9rem'}}>Rok produkcji</label>
+          <input type="number" name="year" value={formData.year} onChange={handleChange} style={dynamicInputStyle} />
+
+          <label style={{fontSize: '0.9rem'}}>Poj. silnika (cm³)</label>
+          <input type="number" name="engine" step="100" value={formData.engine} onChange={handleChange} style={dynamicInputStyle} />
+
+          <p style={{fontWeight: 'bold', marginBottom: '5px', marginTop: '10px'}}>Dane Kierowcy</p>
+          
+          <label style={{fontSize: '0.9rem'}}>Wiek kierowcy</label>
+          <input type="number" name="driverAge" value={formData.driverAge} onChange={handleChange} style={dynamicInputStyle} />
+
+          <label style={{fontSize: '0.9rem'}}>Rok uzyskania prawa jazdy</label>
           <input 
             type="number" 
-            {...register("driverAge")} 
-            placeholder="np. 28" 
-            min="0" 
-            onKeyDown={preventMinus} 
-            className="no-spinners"
+            name="licenseYear" 
+            value={formData.licenseYear} 
+            onChange={handleChange} 
+            style={{...dynamicInputStyle, borderColor: isLicenseValid ? 'var(--text-muted, #555)' : '#ef4444'}} 
           />
-          <p className="error-msg">{errors.driverAge?.message}</p>
-        </div>
 
-        <div className="form-group">
-          <label>Rodzaj silnika / Paliwo</label>
-          <select {...register("engineType")}>
-            <option value="">-- Wybierz --</option>
-            <option value="petrol">⛽ Benzyna</option>
-            <option value="diesel">⚫ Diesel (ON)</option>
-            <option value="hybrid">🔋 Hybryda</option>
-            <option value="electric">⚡ Elektryczny</option>
+          <label style={{fontSize: '0.9rem'}}>Szkody (ostatnie 5 lat)</label>
+          <select name="claims" value={formData.claims} onChange={handleChange} style={dynamicInputStyle}>
+            <option value="0">Brak szkód</option>
+            <option value="1">1 szkoda</option>
+            <option value="2">2 szkody</option>
+            <option value="3">3 lub więcej</option>
           </select>
-          <p className="error-msg">{errors.engineType?.message}</p>
-        </div>
 
-        {selectedEngineType && selectedEngineType !== 'electric' && (
-          <div className="form-group" style={{ animation: 'fadeIn 0.5s' }}>
-            <label>Pojemność silnika</label>
-            <select {...register("engineCapacity")}>
-              <option value="">-- Wybierz --</option>
-              <option value="1.0">do 1.2L</option>
-              <option value="1.6">1.3L - 1.6L</option>
-              <option value="2.0">1.7L - 2.0L</option>
-              <option value="3.0">2.1L - 3.0L</option>
-              <option value="4.0">Powyżej 3.0L</option>
-            </select>
-            <p className="error-msg">{errors.engineCapacity?.message}</p>
+          <button type="submit" className="btn-primary" disabled={loading || !isLicenseValid} style={{width: '100%', padding: '15px', marginTop: '10px'}}>
+            {loading ? 'Przetwarzanie...' : 'Oblicz składkę'}
+          </button>
+        </form>
+
+        {result !== null && !loading && (
+          <div className="anim-slide-up" style={{marginTop: '25px', borderTop: '1px solid var(--border-color)', paddingTop: '20px'}}>
+            <h3 style={{margin: 0}}>Twoja szacowana składka:</h3>
+            <p style={{fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)', margin: '5px 0'}}>{result} PLN</p>
+            <p style={{fontSize: '0.9rem', color: 'var(--text-muted)'}}>Pojazd: {formData.brand} {formData.carModel} ({formData.year})</p>
           </div>
         )}
-
-        <div className="form-group">
-          <label>Lata bezszkodowej jazdy</label>
-          <input 
-            type="number" 
-            {...register("safeDrivingYears")} 
-            defaultValue={0} 
-            min="0" 
-            onKeyDown={preventMinus} 
-            className="no-spinners"
-          />
-          <p className="error-msg">{errors.safeDrivingYears?.message}</p>
-        </div>
-
-        <div className="form-group">
-          <label>Wybierz pakiet</label>
-          <div className="radio-group">
-            
-            <label>
-              <input type="radio" value="oc" {...register("insuranceType")} defaultChecked />
-              <div>
-                <strong>Tylko OC</strong><br/>
-                <small style={{ color: 'var(--text-muted)' }}>Podstawowa ochrona prawna</small>
-              </div>
-            </label>
-
-            <label>
-              <input type="radio" value="ac" {...register("insuranceType")} />
-              <div>
-                <strong>Pakiet OC + AC (+50%)</strong><br/>
-                <small style={{ color: 'var(--text-muted)' }}>Ochrona przed kradzieżą i uszkodzeniami</small>
-              </div>
-            </label>
-
-            <label style={{ 
-              border: '2px solid var(--secondary)', 
-              backgroundColor: 'rgba(37, 99, 235, 0.03)' 
-            }}>
-              <input type="radio" value="premium" {...register("insuranceType")} />
-              <div>
-                <strong style={{ color: 'var(--secondary)' }}>Full Premium VIP (+100%)</strong>
-                <br/>
-                <small style={{ fontSize: '0.85rem', color: 'var(--text-main)', display: 'block', marginTop: '8px', lineHeight: '1.6' }}>
-                  Pełne AutoCasco (All Risk)<br/>
-                  Assistance Europa (Hotel + Laweta)<br/>
-                  Ubezpieczenie Opon i Szyb<br/>
-                  Auto Zastępcze na 14 dni
-                </small>
-              </div>
-            </label>
-
-          </div>
-          <p className="error-msg">{errors.insuranceType?.message}</p>
-        </div>
-
-        <button type="submit" className="btn-primary">Przelicz składkę</button>
-      </form>
-
-      {result && (
-        <div className="result-box anim-pop">
-          <h2 style={{ marginBottom: '10px' }}>Twoja składka:</h2>
-          <span className="price" style={{ fontSize: '2.5rem', display: 'block', margin: '15px 0' }}>
-            {result} PLN / rok
-          </span>
-          
-          {user && savedId && (
-            <div style={{ 
-              marginTop: '15px', 
-              padding: '10px', 
-              backgroundColor: '#dcfce7', 
-              color: '#166534', 
-              borderRadius: '8px',
-              fontWeight: 'bold'
-            }}>
-            Oferta została zapisana w Twoim profilu!
-            </div>
-          )}
-          
-          {!user && (
-            <p style={{ marginTop: '15px' }}>
-              <a href="/logowanie" style={{ fontWeight: 'bold', textDecoration: 'underline' }}>Zaloguj się</a>, aby zapisać tę ofertę.
-            </p>
-          )}
-        </div>
-      )}
+      </div>
     </div>
   );
 };

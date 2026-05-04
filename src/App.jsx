@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
+import NotFound from './pages/NotFound';
 
 import './styles/main.css';
 
@@ -29,6 +30,7 @@ function App() {
               <Route path="/rejestracja" element={<Register />} />
               <Route path="/profil" element={<Profile />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
           <Footer />
