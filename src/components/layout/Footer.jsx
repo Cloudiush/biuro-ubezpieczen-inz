@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 const Footer = () => {
   return (
     <footer className="main-footer">
-      <div className="container footer-content">
+      <div className="footer-content container">
         <div className="footer-column">
-          <h3>Biuro Ubezpieczeń</h3>
+          <h3>Biuro<span>Ubezpieczeń</span></h3>
           <p>Twój zaufany partner w świecie finansów i bezpieczeństwa. Projekt inżynierski 2026.</p>
         </div>
         
@@ -20,13 +20,15 @@ const Footer = () => {
 
         <div className="footer-column">
           <h4>Kontakt</h4>
-          <p>ul. Ubezpieczeniowa 12</p>
-          <p>Warszawa</p>
-          <p>tel. 123 456 789</p>
+          <ul>
+            <li>ul. Ubezpieczeniowa 12</li>
+            <li>00-001 Warszawa</li>
+            <li>tel. 123 456 789</li>
+          </ul>
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} Projekt</p>
+        <p>&copy; 2026 Biuro Ubezpieczeń. Wszelkie prawa zastrzeżone.</p>
       </div>
     </footer>
   );

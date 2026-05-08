@@ -15,6 +15,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // --- Logika Dark Mode ---
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
+  // -------------------------
+
   const signup = (email, password) => {
     return createUserWithEmailAndPassword(auth, email, password);
   };
@@ -35,11 +56,17 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  // NOWOŚĆ: Obliczamy, czy zalogowany użytkownik to admin
+  const isAdmin = user && user.email === 'admin@admin.com';
+
   const value = {
     user,
+    isAdmin, // Udostępniamy tę informację w całej aplikacji
     signup,
     login,
-    logout
+    logout,
+    darkMode,
+    toggleDarkMode
   };
 
   return (
