@@ -1,27 +1,25 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
   return (
     <div className="home-wrapper">
-      {/* SEKCJA HERO */}
       <section className="hero-section">
-        <div className="hero-content anim-slide-up">
+        <div className="container hero-content anim-slide-up">
           <h1>Ubezpiecz swój samochód<br/>szybko i bezpiecznie</h1>
           <p>Porównaj oferty, wybierz najlepszy pakiet i kup polisę online w 5 minut.</p>
           <div className="hero-btns">
-            <Link to="/kalkulator" className="btn-hero primary">Oblicz składkę</Link>
-            <Link to="/oferta" className="btn-hero secondary">Zobacz pakiety</Link>
+            <Link to="/kalkulator" className="btn-primary">Oblicz składkę</Link>
+            <Link to="/oferta" className="btn-outline">Zobacz pakiety</Link>
           </div>
         </div>
       </section>
 
-      {/* SEKCJA CECHY (Dlaczego my) */}
       <section className="container">
         <div className="section-title">
           <h2>Dlaczego my?</h2>
           <p>Zaufało nam już ponad 10,000 kierowców w całej Polsce.</p>
         </div>
-
         <div className="features-grid">
           <div className="feature-item anim-slide-up">
             <div className="feature-icon">⚡</div>
@@ -41,14 +39,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* BANER CTA - To ten element przesuwamy do góry */}
-      <div className="cta-wrapper container">
+      <div className="container">
         <section className="cta-banner anim-slide-up">
-          <div className="cta-content">
-            <h2>Gotowy na oszczędności?</h2>
-            <p>Średni koszt OC w naszym kalkulatorze to tylko 450 PLN. Sprawdź, ile zaoszczędzisz.</p>
-          </div>
-          <Link to="/kalkulator" className="btn-hero primary">Przejdź do kalkulatora →</Link>
+          <h2>Gotowy na oszczędności?</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Średni koszt OC w naszym kalkulatorze to tylko 450 PLN. Sprawdź, ile zaoszczędzisz.</p>
+          <Link to="/kalkulator" className="btn-primary">Przejdź do kalkulatora →</Link>
         </section>
       </div>
     </div>

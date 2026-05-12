@@ -11,11 +11,11 @@ import Calculator from './pages/Calculator';
 import Contact from './pages/Contact';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
+import Offer from './pages/Offer';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
-// Komponent pomocniczy do obsługi logiki tras wewnątrz AuthProvider
 const AppRoutes = () => {
   const { user, isAdmin } = useAuth();
 
@@ -27,23 +27,11 @@ const AppRoutes = () => {
           <Route path="/" element={<Home />} />
           <Route path="/kalkulator" element={<Calculator />} />
           <Route path="/kontakt" element={<Contact />} />
-          
-          {/* ZABEZPIECZONA TRASA ADMINA */}
-          {/* Jeśli isAdmin jest false, Navigate przekieruje na stronę główną */}
-          <Route 
-            path="/admin" 
-            element={isAdmin ? <AdminPanel /> : <Navigate to="/" />} 
-          />
-          
+          <Route path="/oferta" element={<Offer />} />
+          <Route  path="/admin" element={isAdmin ? <AdminPanel /> : <Navigate to="/" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
-          {/* Profil dostępny tylko dla zalogowanych */}
-          <Route 
-            path="/profile" 
-            element={user ? <Profile /> : <Navigate to="/login" />} 
-          />
-          
+          <Route path="/profile"  element={user ? <Profile /> : <Navigate to="/login" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

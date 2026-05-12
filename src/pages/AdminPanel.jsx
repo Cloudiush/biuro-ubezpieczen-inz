@@ -9,37 +9,50 @@ import { toast } from 'react-toastify';
 import emailjs from '@emailjs/browser';
 
 const AdminPanel = () => {
+  const [activeTab, setActiveTab] = useState('quotes');
+
   const [quotes, setQuotes] = useState([]);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [finalPrice, setFinalPrice] = useState('');
   const [adminMessage, setAdminMessage] = useState('');
+  
+  const [contactMessages, setContactMessages] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [replyText, setReplyText] = useState('');
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchQuotes = async () => {
+    const fetchData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'quotes'));
-        setQuotes(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const quotesSnap = await getDocs(collection(db, 'quotes'));
+        setQuotes(quotesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (err) {
-        toast.error("Błąd pobierania bazy danych.");
+        toast.error("Błąd pobierania zapytań o ofertę.");
+      }
+
+      try {
+        const contactsSnap = await getDocs(collection(db, 'contacts'));
+        setContactMessages(contactsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        toast.error("Błąd pobierania wiadomości kontaktowych.");
       }
     };
-    fetchQuotes();
+    fetchData();
   }, []);
 
-  const handleSelect = (q) => {
+  const handleSelectQuote = (q) => {
     setSelectedQuote(q);
     setFinalPrice(q.probablePrice || '');
-    setAdminMessage(`Dzień dobry ${q.firstName},\n\nPrzygotowałem ostateczną ofertę ubezpieczenia dla auta ${q.brand} ${q.model}. Szczegóły znajdziesz w załączonym PDF.\n\nPozdrawiam!`);
+    setAdminMessage(`Dzień dobry ${q.firstName},\n\nPrzygotowałem ofertę ubezpieczenia dla auta ${q.brand} ${q.model}. Szczegóły znajdziesz w załączonym dokumencie PDF.\n\nPozdrawiam!`);
   };
 
   const handleSendFullOffer = async () => {
     if (!selectedQuote) return;
     setLoading(true);
-    const toastId = toast.loading("Generowanie i wysyłanie dokumentacji...");
+    const toastId = toast.loading("Generowanie i wysyłanie oferty...");
 
     try {
-      // 1. Generowanie PDF z niewidocznego szablonu
       const input = document.getElementById('offer-document-template');
       const canvas = await html2canvas(input, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
@@ -47,15 +60,12 @@ const AdminPanel = () => {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      
       const pdfBlob = pdf.output('blob');
 
-      // 2. Upload do wymuszonego Storage (połączenie z poprawnym bucketem)
       const storageRef = ref(storage, `offers/Oferta_${selectedQuote.id}_${Date.now()}.pdf`);
       await uploadBytes(storageRef, pdfBlob);
       const pdfUrl = await getDownloadURL(storageRef);
 
-      // 3. Wysyłka e-mail z wygenerowanym linkiem
       await emailjs.send(
         'service_ecr5zxe', 
         'template_pxdo309', 
@@ -63,87 +73,200 @@ const AdminPanel = () => {
           to_email: selectedQuote.userEmail,
           to_name: selectedQuote.firstName,
           message: `${adminMessage}\n\nLink do Twojej oferty PDF: ${pdfUrl}`,
-          final_price: finalPrice
         }, 
         'lWkknHp8cLL9UjRc4'
       );
 
-      toast.update(toastId, { render: "Oferta wysłana pomyślnie na e-mail klienta!", type: "success", isLoading: false, autoClose: 3000 });
+      toast.update(toastId, { render: "Oferta wysłana!", type: "success", isLoading: false, autoClose: 3000 });
     } catch (err) {
-      console.error(err);
-      toast.update(toastId, { render: "Błąd podczas wysyłki: " + err.message, type: "error", isLoading: false, autoClose: 3000 });
+      toast.update(toastId, { render: "Błąd wysyłki oferty.", type: "error", isLoading: false, autoClose: 3000 });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectContact = (msg) => {
+    setSelectedContact(msg);
+    setReplyText(`Dzień dobry ${msg.name || ''},\n\nW odpowiedzi na Twoją wiadomość:\n\nPozdrawiam,\nBiuro Ubezpieczeń`);
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedContact) return;
+    setLoading(true);
+    const toastId = toast.loading("Wysyłanie odpowiedzi...");
+
+    try {
+      await emailjs.send(
+        'service_ecr5zxe', 
+        'template_l2edg3k',
+        {
+          to_email: selectedContact.email,
+          to_name: selectedContact.name || 'Klient',
+          message: replyText
+        }, 
+        'lWkknHp8cLL9UjRc4'
+      );
+
+      toast.update(toastId, { render: "Odpowiedź wysłana!", type: "success", isLoading: false, autoClose: 3000 });
+    } catch (err) {
+      toast.update(toastId, { render: "Błąd wysyłki.", type: "error", isLoading: false, autoClose: 3000 });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container" style={{ padding: '40px 20px' }}>
+    <div className="container admin-container">
       <h1 className="section-title">Panel Administratora</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', marginTop: '30px' }}>
-        {/* LEWA STRONA: LISTA */}
-        <div>
-          {quotes.map(q => (
-            <div key={q.id} onClick={() => handleSelect(q)} style={{ 
-              padding: '15px', border: selectedQuote?.id === q.id ? '2px solid #2563eb' : '1px solid #ddd', 
-              marginBottom: '10px', cursor: 'pointer', backgroundColor: '#fff' 
-            }}>
-              <strong>{q.firstName} {q.lastName}</strong>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>Wycena bazowa: {q.probablePrice} PLN</div>
-            </div>
-          ))}
-        </div>
-
-        {/* PRAWA STRONA: DANE, EDYCJA I WYSYŁKA */}
-        <div style={{ backgroundColor: '#fff', padding: '30px', border: '1px solid #ddd' }}>
-          {selectedQuote ? (
-            <div className="anim-slide-up">
-              <h2 style={{ borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '20px' }}>
-                Wycena dla: {selectedQuote.firstName} {selectedQuote.lastName}
-              </h2>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px', background: '#f8fafc', padding: '15px' }}>
-                <p>PESEL: <strong>{selectedQuote.pesel}</strong></p>
-                <p>Auto: <strong>{selectedQuote.brand} {selectedQuote.model}</strong></p>
-                <p>Moc/Pojemność: <strong>{selectedQuote.enginePower} kW / {selectedQuote.engineCapacity} cm3</strong></p>
-                <p>Przebieg: <strong>{selectedQuote.mileage} km</strong></p>
-              </div>
-
-              <label style={{ fontWeight: 'bold' }}>Ostateczna wycena (PLN):</label>
-              <input 
-                type="number" 
-                value={finalPrice} 
-                onChange={(e) => setFinalPrice(e.target.value)} 
-                style={{ display: 'block', width: '200px', marginBottom: '20px', padding: '12px', border: '2px solid #2563eb', fontWeight: 'bold', fontSize: '1.1rem' }} 
-              />
-              
-              <label style={{ fontWeight: 'bold' }}>Wiadomość w mailu:</label>
-              <textarea 
-                rows="5" 
-                value={adminMessage} 
-                onChange={(e) => setAdminMessage(e.target.value)} 
-                style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #ccc' }} 
-              />
-
-              <button 
-                onClick={handleSendFullOffer} 
-                disabled={loading} 
-                className="btn-primary" 
-                style={{ width: '100%', padding: '15px', fontSize: '1.1rem', fontWeight: 'bold' }}
-              >
-                {loading ? 'Przetwarzanie dokumentu i wysyłanie...' : 'Wyślij ofertę z PDF e-mailem'}
-              </button>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>
-              Wybierz zapytanie z listy po lewej, aby rozpocząć wycenę.
-            </div>
-          )}
-        </div>
+      <div className="admin-tabs">
+        <button 
+          onClick={() => setActiveTab('quotes')} 
+          className={`admin-tab-btn ${activeTab === 'quotes' ? 'active quotes' : ''}`}
+        >
+          Zapytania o ofertę
+        </button>
+        <button 
+          onClick={() => setActiveTab('messages')} 
+          className={`admin-tab-btn ${activeTab === 'messages' ? 'active messages' : ''}`}
+        >
+          Wiadomości z formularza
+        </button>
       </div>
 
-      {/* UKRYTY SZABLON PDF - wyłączone zdarzenia myszy zapobiegają blokowaniu UI */}
+      {activeTab === 'quotes' && (
+        <div className="admin-layout anim-fade-in">
+          <div>
+            {quotes.length === 0 && <p className="empty-state">Brak zapytań o ofertę.</p>}
+            {quotes.map(q => (
+              <div 
+                key={q.id} 
+                onClick={() => handleSelectQuote(q)} 
+                className={`admin-list-item ${selectedQuote?.id === q.id ? 'active quote-item' : ''}`}
+              >
+                <strong>{q.firstName} {q.lastName}</strong>
+                <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>Wycena bazy: {q.probablePrice} PLN</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="admin-details-panel">
+            {selectedQuote ? (
+              <div className="anim-slide-up">
+                <h2 className="details-header quote-header">
+                  Wycena dla: <span style={{ opacity: 0.9 }}>{selectedQuote.firstName} {selectedQuote.lastName}</span>
+                </h2>
+                
+                <div className="info-grid">
+                  <div>
+                    <p className="info-label">Dane Klienta</p>
+                    <p>PESEL: <strong>{selectedQuote.pesel}</strong></p>
+                    <p>Kod pocztowy: <strong>{selectedQuote.zipCode}</strong></p>
+                    <p>Wiek: <strong>{selectedQuote.age} lat</strong></p>
+                  </div>
+                  <div>
+                    <p className="info-label">Dane Pojazdu</p>
+                    <p>Auto: <strong>{selectedQuote.brand} {selectedQuote.model} ({selectedQuote.carYear})</strong></p>
+                    <p>Silnik: <strong>{selectedQuote.engineCapacity} cm3, {selectedQuote.enginePower} kW</strong></p>
+                    <p>Paliwo: <strong>{selectedQuote.engineType}</strong></p>
+                    <p>Przebieg: <strong>{selectedQuote.mileage} km</strong></p>
+                  </div>
+                </div>
+
+                <div className="variants-box">
+                  <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>Wybrane pakiety i dodatki:</p>
+                  <div className="badges-container">
+                    <span className="badge-green">OC</span>
+                    {selectedQuote.variants?.ac && <span className="badge-green">AC</span>}
+                    {selectedQuote.variants?.nnw && <span className="badge-green">NNW</span>}
+                    
+                    {(selectedQuote.assistance || selectedQuote.windowProtection || selectedQuote.tireProtection || selectedQuote.discountProtection) && (
+                       <div className="badge-divider"></div>
+                    )}
+                    {selectedQuote.assistance && <span className="badge-blue">Assistance</span>}
+                    {selectedQuote.windowProtection && <span className="badge-blue">Ochrona Szyb</span>}
+                    {selectedQuote.tireProtection && <span className="badge-blue">Ochrona Opon</span>}
+                    {selectedQuote.discountProtection && <span className="badge-blue">Ochrona Zniżek</span>}
+                  </div>
+                </div>
+
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Ostateczna wycena (PLN):</label>
+                <input 
+                  type="number" 
+                  value={finalPrice} 
+                  onChange={(e) => setFinalPrice(e.target.value)} 
+                  className="price-input" 
+                />
+                
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Wiadomość:</label>
+                <textarea 
+                  rows="5" 
+                  value={adminMessage} 
+                  onChange={(e) => setAdminMessage(e.target.value)} 
+                  className="admin-textarea" 
+                />
+
+                <button 
+                  onClick={handleSendFullOffer} 
+                  disabled={loading} 
+                  className="btn-primary btn-large"
+                >
+                  {loading ? 'Przetwarzanie...' : 'Wyślij ofertę z PDF'}
+                </button>
+              </div>
+            ) : <div className="empty-state">Wybierz zapytanie z listy.</div>}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'messages' && (
+        <div className="admin-layout anim-fade-in">
+          <div>
+            {contactMessages.length === 0 && <p className="empty-state">Brak nowych wiadomości.</p>}
+            {contactMessages.map(msg => (
+              <div 
+                key={msg.id} 
+                onClick={() => handleSelectContact(msg)} 
+                className={`admin-list-item ${selectedContact?.id === msg.id ? 'active message-item' : ''}`}
+              >
+                <strong>{msg.name || msg.email}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="admin-details-panel">
+            {selectedContact ? (
+              <div className="anim-slide-up">
+                <h2 className="details-header message-header">
+                  Odpowiedź do: <span style={{ opacity: 0.9 }}>{selectedContact.email}</span>
+                </h2>
+                
+                <div className="message-box">
+                  <p className="info-label" style={{ marginBottom: '10px' }}>Treść zapytania:</p>
+                  <p style={{ fontStyle: 'italic', margin: 0 }}>"{selectedContact.message}"</p>
+                </div>
+                
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Twoja odpowiedź:</label>
+                <textarea 
+                  rows="8" 
+                  value={replyText} 
+                  onChange={(e) => setReplyText(e.target.value)} 
+                  className="admin-textarea" 
+                />
+                
+                <button 
+                  onClick={handleSendReply} 
+                  disabled={loading} 
+                  className="btn-success"
+                >
+                  {loading ? 'Wysyłanie...' : 'Wyślij odpowiedź'}
+                </button>
+              </div>
+            ) : <div className="empty-state">Wybierz wiadomość z listy.</div>}
+          </div>
+        </div>
+      )}
+
       {selectedQuote && (
         <div style={{ position: 'fixed', left: '-5000px', top: 0, pointerEvents: 'none' }}>
           <OfferDocument quote={{ ...selectedQuote, probablePrice: finalPrice }} id="offer-document-template" />

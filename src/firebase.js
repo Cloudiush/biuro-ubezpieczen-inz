@@ -8,15 +8,14 @@ const firebaseConfig = {
   authDomain: "biuro-ubezpieczen-inz.firebaseapp.com",
   projectId: "biuro-ubezpieczen-inz",
   storageBucket: "biuro-ubezpieczen-inz.firebasestorage.app",
-  messagingSenderId: "190409297734", // Wklej swój Sender ID
-  appId: "1:190409297734:web:322a775f2c37e316075f47" // Wklej swoje App ID
+  messagingSenderId: "190409297734",
+  appId: "1:190409297734:web:322a775f2c37e316075f47"
 };
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-// JEDEN wymuszony eksport storage, który naprawia błąd adresowania
 export const storage = getStorage(app, "gs://biuro-ubezpieczen-inz.firebasestorage.app");
 
 export default app;
