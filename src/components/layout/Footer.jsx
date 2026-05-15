@@ -29,10 +29,10 @@ const Footer = () => {
         <div className="footer-col">
           <h3>Kontakt</h3>
           <ul>
-            <li>📍 ul. Ubezpieczeniowa 12</li>
+            <li>ul. Ubezpieczeniowa 12</li>
             <li>00-001 Warszawa</li>
-            <li>📞 tel. 123 456 789</li>
-            <li>✉️ kontakt@biuro.pl</li>
+            <li>tel. 123 456 789</li>
+            <li>kontakt@biuro.pl</li>
           </ul>
         </div>
 

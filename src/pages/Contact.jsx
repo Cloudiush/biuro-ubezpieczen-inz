@@ -32,29 +32,6 @@ const Contact = () => {
     }
   };
 
-  const cardStyle = {
-    background: 'var(--bg-secondary)',
-    color: 'var(--text-primary)',
-    padding: '30px',
-    borderRadius: '12px',
-    border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-    boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
-    maxWidth: '600px',
-    margin: '0 auto'
-  };
-
-  const inputStyle = {
-    padding: '12px',
-    borderRadius: '6px',
-    border: '1px solid var(--text-muted, #555)',
-    fontSize: '1rem',
-    width: '100%',
-    marginBottom: '15px',
-    backgroundColor: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    display: 'block'
-  };
-
   return (
     <div className="container" style={{ padding: '40px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -62,14 +39,14 @@ const Contact = () => {
         <p style={{ color: 'var(--text-muted)' }}>Masz pytania dotyczące polisy? Jesteśmy do Twojej dyspozycji 24/7.</p>
       </div>
 
-      <div className="anim-slide-up" style={cardStyle}>
+      <div className="anim-slide-up contact-card">
         <h2 style={{ marginBottom: '20px', fontSize: '1.5rem' }}>Napisz wiadomość</h2>
         <form onSubmit={handleSubmit}>
           <label style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Imię i Nazwisko</label>
           <input 
             type="text" 
             required 
-            style={inputStyle} 
+            className="contact-input" 
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
           />
@@ -78,14 +55,14 @@ const Contact = () => {
           <input 
             type="email" 
             required 
-            style={inputStyle} 
+            className="contact-input" 
             value={formData.email}
             onChange={(e) => setFormData({...formData, email: e.target.value})}
           />
 
           <label style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Temat</label>
           <select 
-            style={inputStyle}
+            className="contact-input"
             value={formData.subject}
             onChange={(e) => setFormData({...formData, subject: e.target.value})}
           >
@@ -98,7 +75,7 @@ const Contact = () => {
           <textarea 
             required 
             rows="5" 
-            style={{ ...inputStyle, resize: 'vertical' }}
+            className="contact-input contact-input-textarea"
             value={formData.message}
             onChange={(e) => setFormData({...formData, message: e.target.value})}
           ></textarea>

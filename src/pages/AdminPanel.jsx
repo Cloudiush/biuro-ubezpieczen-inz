@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import OfferDocument from '../components/pdf/OfferDocument'; 
 import jsPDF from 'jspdf';
@@ -66,6 +66,22 @@ const AdminPanel = () => {
       await uploadBytes(storageRef, pdfBlob);
       const pdfUrl = await getDownloadURL(storageRef);
 
+      try {
+        await addDoc(collection(db, "offers"), {
+          uid: selectedQuote.uid || "",
+          email: selectedQuote.userEmail || "",
+          carBrand: selectedQuote.brand || "",
+          carModel: selectedQuote.model || "",
+          carYear: selectedQuote.carYear || "",
+          engineType: selectedQuote.engineType || "",
+          price: finalPrice || "",
+          pdfUrl: pdfUrl || "",
+          createdAt: serverTimestamp()
+        });
+      } catch (dbErr) {
+        console.error("Błąd zapisu rekordu oferty w Firestore:", dbErr);
+      }
+
       await emailjs.send(
         'service_ecr5zxe', 
         'template_pxdo309', 
@@ -87,7 +103,7 @@ const AdminPanel = () => {
 
   const handleSelectContact = (msg) => {
     setSelectedContact(msg);
-    setReplyText(`Dzień dobry ${msg.name || ''},\n\nW odpowiedzi na Twoją wiadomość:\n\nPozdrawiam,\nBiuro Ubezpieczeń`);
+    setReplyText(`Dzień dobry ${msg.name || ''},\n\nW odpowiedzi na Twoją wiadomość:\n\n\n\nPozdrawiam,\nBiuro Ubezpieczeń`);
   };
 
   const handleSendReply = async () => {
@@ -178,11 +194,10 @@ const AdminPanel = () => {
                   <div className="badges-container">
                     <span className="badge-green">OC</span>
                     {selectedQuote.variants?.ac && <span className="badge-green">AC</span>}
-                    {selectedQuote.variants?.nnw && <span className="badge-green">NNW</span>}
-                    
-                    {(selectedQuote.assistance || selectedQuote.windowProtection || selectedQuote.tireProtection || selectedQuote.discountProtection) && (
-                       <div className="badge-divider"></div>
+                    {(selectedQuote.nnw || selectedQuote.assistance || selectedQuote.windowProtection || selectedQuote.tireProtection || selectedQuote.discountProtection) && (
+                      <div className="badge-divider"></div>
                     )}
+                    {selectedQuote.nnw && <span className="badge-blue">NNW</span>}
                     {selectedQuote.assistance && <span className="badge-blue">Assistance</span>}
                     {selectedQuote.windowProtection && <span className="badge-blue">Ochrona Szyb</span>}
                     {selectedQuote.tireProtection && <span className="badge-blue">Ochrona Opon</span>}

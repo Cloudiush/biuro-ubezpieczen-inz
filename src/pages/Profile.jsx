@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import OfferDocument from '../components/pdf/OfferDocument';
-import { FileText } from 'lucide-react';
+import { FileText, Calculator as CalcIcon, Clock } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -15,7 +14,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate('/logowanie');
+      navigate('/login');
     }
   }, [user, navigate]);
 
@@ -26,7 +25,7 @@ const Profile = () => {
       try {
         const q = query(
           collection(db, "offers"), 
-          where("uid", "==", user.uid)
+          where("email", "==", user.email)
         );
 
         const querySnapshot = await getDocs(q);
@@ -42,8 +41,9 @@ const Profile = () => {
         });
 
         setOffers(offersData);
-      } catch (error) {
-        console.error("Błąd pobierania ofert:", error);
+      } catch (err) {
+        console.error("Błąd pobierania ofert:", err);
+        toast.error("Nie udało się załadować ofert.");
       } finally {
         setLoading(false);
       }
@@ -52,96 +52,79 @@ const Profile = () => {
     fetchOffers();
   }, [user]);
 
-  if (loading) return <div className="container" style={{textAlign:'center', marginTop: '50px'}}>Ładowanie danych...</div>;
+  if (loading) {
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: '100px' }}>
+        <div className="loader">Ładowanie Twoich ofert...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container" style={{ marginTop: '40px', marginBottom: '80px' }}>
-      <div className="profile-header">
-        <h1>Twój Profil</h1>
-        <p>Zalogowany jako: <strong>{user?.email}</strong></p>
+    <div className="container anim-fade-in" style={{ padding: '40px 20px' }}>
+      <div className="profile-header" style={{ marginBottom: '50px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.8rem', fontWeight: '800', marginBottom: '10px' }}>
+          Twoje <span style={{ color: 'var(--primary)' }}>Oferty</span>
+        </h1>
+        <p style={{ opacity: 0.7, fontSize: '1.1rem' }}>
+          Zarządzaj swoimi kalkulacjami i pobieraj gotowe dokumenty PDF
+        </p>
       </div>
 
-      <div className="profile-content">
-        <h2>Historia Twoich kalkulacji</h2>
-        
-        {offers.length === 0 ? (
-          <div className="empty-state">
-            <p>Nie masz jeszcze zapisanych ofert.</p>
-            <button onClick={() => navigate('/kalkulator')} className="btn-primary" style={{maxWidth: '200px'}}>
-              Przejdź do kalkulatora
-            </button>
+      {offers.length === 0 ? (
+        <div className="empty-state-card">
+          <div className="empty-icon">
+            <FileText size={80} strokeWidth={1} opacity={0.3} />
           </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="offers-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Samochód</th>
-                  <th>Silnik</th>
-                  <th>Cena</th>
-                  <th>Akcje</th>
-                </tr>
-              </thead>
-              <tbody>
-                {offers.map((offer) => (
-                  <tr key={offer.id}>
-                    <td>
-                      {offer.createdAt?.toDate ? (
-                        <>
-                          {offer.createdAt.toDate().toLocaleDateString('pl-PL')} <br/>
-                          <small>{offer.createdAt.toDate().toLocaleTimeString('pl-PL', {hour: '2-digit', minute:'2-digit'})}</small>
-                        </>
-                      ) : (
-                        <span>Przetwarzanie...</span>
-                      )}
-                    </td>
+          <h3 style={{ fontSize: '1.8rem', marginBottom: '15px' }}>Brak aktywnych ofert</h3>
+          <p style={{ marginBottom: '30px', opacity: 0.8 }}>
+            Wygląda na to, że nie przygotowaliśmy dla Ciebie jeszcze żadnej wyceny. 
+            Użyj kalkulatora, aby przesłać zapytanie do naszego agenta.
+          </p>
+          <button onClick={() => navigate('/kalkulator')} className="btn-primary" style={{ padding: '15px 40px' }}>
+            <CalcIcon size={20} style={{ marginRight: '10px' }} />
+            Przejdź do kalkulatora
+          </button>
+        </div>
+      ) : (
+        <div className="offers-grid">
+          {offers.map((offer) => (
+            <div key={offer.id} className="offer-card">
+              <div className="card-badge">Gwarancja Ceny</div>
+              
+              <div className="card-header">
+                <h2 className="car-name">{offer.carBrand}</h2>
+                <p className="car-model-info">{offer.carModel} • {offer.carYear}</p>
+              </div>
 
-                    <td>Rocznik {offer.carYear}</td>
+              <div className="card-details">
+                <div className="detail-row">
+                  <span className="label">Kwota polisy:</span>
+                  <span className="price-tag">{offer.price} PLN</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label"><Clock size={14} style={{ marginRight: '5px' }} /> Data wydania:</span>
+                  <span>{offer.createdAt?.seconds ? new Date(offer.createdAt.seconds * 1000).toLocaleDateString() : 'Brak daty'}</span>
+                </div>
+              </div>
 
-                    <td>
-                      {offer.engineType === 'petrol' && 'Benzyna'}
-                      {offer.engineType === 'diesel' && 'Diesel'}
-                      {offer.engineType === 'hybrid' && 'Hybryda'}
-                      {offer.engineType === 'electric' && 'Elektryczny'}
-                    </td>
-
-                    <td>
-                      <span className="price-cell">{offer.price} PLN</span>
-                    </td>
-
-                    <td>
-                      <PDFDownloadLink 
-                        document={<OfferDocument data={offer} />} 
-                        fileName={`Oferta_Ubezpieczenia_${offer.carYear}.pdf`}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        {({ loading: pdfLoading }) => (
-                          <button 
-                            className="btn-outline" 
-                            style={{ 
-                              padding: '6px 12px', 
-                              fontSize: '0.8rem', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '6px',
-                              cursor: 'pointer'
-                            }}
-                            disabled={pdfLoading}
-                          >
-                            <FileText size={16} />
-                            {pdfLoading ? 'Generuję...' : 'Pobierz PDF'}
-                          </button>
-                        )}
-                      </PDFDownloadLink>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              <div className="card-actions">
+                <a 
+                  href={offer.pdfUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ width: '100%', textDecoration: 'none' }}
+                >
+                  <button className="btn-download-full">
+                    <FileText size={18} />
+                    Pobierz Dokument PDF
+                  </button>
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

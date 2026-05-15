@@ -25,8 +25,8 @@ const Calculator = () => {
     firstName: '', lastName: '', pesel: '', zipCode: '', birthDate: '',
     brand: '', model: '', carYear: '', engineCapacity: '',
     enginePower: '', engineType: 'PETROL', mileage: '',
-    variants: { oc: true, ac: false, nnw: false },
-    assistance: false, windowProtection: false, tireProtection: false, discountProtection: false
+    variants: { oc: true, ac: false},
+    nnw: false, assistance: false, windowProtection: false, tireProtection: false, discountProtection: false
   });
 
   const calculateAge = (birthDate) => {
@@ -84,20 +84,33 @@ const Calculator = () => {
     const fuelFactor = formData.engineType === 'DIESEL' ? 50 : formData.engineType === 'LPG' ? 80 : 0;
     const youngFactor = age < 26 ? 600 : 0;
     
-    const extras = (formData.variants.ac ? 500 : 0) + (formData.variants.nnw ? 100 : 0);
-    const addonsCost = (formData.assistance ? 150 : 0) + (formData.windowProtection ? 80 : 0) + (formData.tireProtection ? 50 : 0) + (formData.discountProtection ? 200 : 0);
+    const extras = (formData.variants.ac ? 500 : 0);
+    const addonsCost =  (formData.nnw ? 100 : 0) + (formData.assistance ? 150 : 0) + (formData.windowProtection ? 80 : 0) + (formData.tireProtection ? 50 : 0) + (formData.discountProtection ? 200 : 0);
 
     setResult(Math.round(400 + yearFactor + powerFactor + fuelFactor + youngFactor + extras + addonsCost));
     setIsSent(false);
   };
 
   const sendForExactQuote = async () => {
-    if (!user) return toast.error("Zaloguj się!");
+    if (!user && !formData.email) {
+      return toast.error("Proszę wprowadzić adres e-mail w formularzu powyżej.");
+    }
+
     try {
-      await addDoc(collection(db, 'quotes'), { ...formData, age: calculateAge(formData.birthDate), probablePrice: result, userEmail: user.email, status: 'new', createdAt: serverTimestamp() });
+      await addDoc(collection(db, 'quotes'), { 
+        ...formData, 
+        age: calculateAge(formData.birthDate), 
+        probablePrice: result, 
+        userEmail: user ? user.email : formData.email,
+        uid: user ? user.uid : '',
+        status: 'new', 
+        createdAt: serverTimestamp() 
+      });
       setIsSent(true);
       toast.success("Wysłano do analizy rynkowej!");
-    } catch { toast.error("Błąd zapisu."); }
+    } catch (err) { 
+      toast.error("Błąd zapisu."); 
+    }
   };
 
   return (
@@ -116,6 +129,18 @@ const Calculator = () => {
             <div className="form-group"><label>PESEL</label><input type="text" name="pesel" maxLength="11" onChange={handleInputChange} required /></div>
             <div className="form-group"><label>Kod pocztowy</label><input type="text" name="zipCode" onChange={handleInputChange} required /></div>
             <div className="form-group"><label>Data urodzenia</label><input type="date" name="birthDate" onChange={handleInputChange} required /></div>
+            {!user && (
+              <div className="form-group anim-fade-in">
+                <label style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Adres Email</label>
+                <input 
+                  type="email" 
+                  required 
+                  placeholder="mail@mail.com"
+                  value={formData.email || ''} 
+                  onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                />
+              </div>
+            )}
           </div>
 
           <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Dane Pojazdu</h3>
@@ -129,20 +154,20 @@ const Calculator = () => {
             <div className="form-group"><label>Przebieg (km)</label><input type="number" name="mileage" onChange={handleInputChange} required /></div>
           </div>
 
-          <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Warianty Płatne</h3>
+          <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>Warianty</h3>
           <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-             <label className="custom-checkbox"><input type="checkbox" checked disabled /><span className="checkmark"></span><span className="label-text">OC</span></label>
-             <label className="custom-checkbox"><input type="checkbox" name="variant_ac" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">AC</span></label>
-             <label className="custom-checkbox"><input type="checkbox" name="variant_nnw" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">NNW</span></label>
+            <label className="custom-checkbox"><input type="checkbox" checked disabled /><span className="checkmark"></span><span className="label-text">OC</span></label>
+            <label className="custom-checkbox"><input type="checkbox" name="variant_ac" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">AC</span></label>
           </div>
           
           <div style={{ marginTop: '20px' }}>
             <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Dodatki do ubezpieczenia:</label>
             <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-               <label className="custom-checkbox"><input type="checkbox" name="assistance" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Assistance</span></label>
-               <label className="custom-checkbox"><input type="checkbox" name="windowProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Szyb</span></label>
-               <label className="custom-checkbox"><input type="checkbox" name="tireProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Opon</span></label>
-               <label className="custom-checkbox"><input type="checkbox" name="discountProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Zniżek</span></label>
+              <label className="custom-checkbox"><input type="checkbox" name="nnw" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">NNW</span></label>
+              <label className="custom-checkbox"><input type="checkbox" name="assistance" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Assistance</span></label>
+              <label className="custom-checkbox"><input type="checkbox" name="windowProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Szyb</span></label>
+              <label className="custom-checkbox"><input type="checkbox" name="tireProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Opon</span></label>
+              <label className="custom-checkbox"><input type="checkbox" name="discountProtection" onChange={handleInputChange} /><span className="checkmark"></span><span className="label-text">Ochrona Zniżek</span></label>
             </div>
           </div>
 

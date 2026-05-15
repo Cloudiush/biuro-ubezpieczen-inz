@@ -23,17 +23,14 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="container nav-container">
-        {/* LOGO */}
         <Link to="/" className="nav-logo" onClick={closeMenu}>
           Biuro Ubezpieczeń
         </Link>
 
-        {/* PRZYCISK MENU MOBILNEGO */}
         <button className="hamburger" onClick={() => setIsMenuOpen(!isMenuOpen)}>
           {isMenuOpen ? '✖' : '☰'}
         </button>
 
-        {/* MENU NAWIGACYJNE */}
         <div className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
           <Link to="/" className="nav-link" onClick={closeMenu}>Strona Główna</Link>
           <Link to="/oferta" className="nav-link" onClick={closeMenu}>Oferta</Link>
@@ -46,7 +43,6 @@ const Navbar = () => {
             </Link>
           )}
 
-          {/* AKCJE UŻYTKOWNIKA */}
           <div className="user-actions">
             <button onClick={toggleDarkMode} className="theme-toggle" title="Przełącz motyw">
               {darkMode ? '☀️' : '🌙'}
@@ -54,7 +50,13 @@ const Navbar = () => {
 
             {user ? (
               <div className="user-profile">
-                <span className="user-email">{user.email}</span>
+                <Link 
+                  to="/profile" 
+                  onClick={closeMenu}
+                  style={{ fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                >
+                  {user.email}
+                </Link>
                 <button onClick={() => { handleLogout(); closeMenu(); }} className="btn-primary logout-btn">
                   Wyloguj
                 </button>

@@ -14,8 +14,6 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // --- Logika Dark Mode ---
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
@@ -34,7 +32,6 @@ export const AuthProvider = ({ children }) => {
   const toggleDarkMode = () => {
     setDarkMode(prev => !prev);
   };
-  // -------------------------
 
   const signup = (email, password) => {
     return createUserWithEmailAndPassword(auth, email, password);
@@ -56,12 +53,11 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  // NOWOŚĆ: Obliczamy, czy zalogowany użytkownik to admin
   const isAdmin = user && user.email === 'admin@admin.com';
 
   const value = {
     user,
-    isAdmin, // Udostępniamy tę informację w całej aplikacji
+    isAdmin,
     signup,
     login,
     logout,
