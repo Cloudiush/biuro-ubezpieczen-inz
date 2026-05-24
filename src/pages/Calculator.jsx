@@ -85,7 +85,11 @@ const Calculator = () => {
     const youngFactor = age < 26 ? 600 : 0;
     
     const extras = (formData.variants.ac ? 500 : 0);
-    const addonsCost =  (formData.nnw ? 100 : 0) + (formData.assistance ? 150 : 0) + (formData.windowProtection ? 80 : 0) + (formData.tireProtection ? 50 : 0) + (formData.discountProtection ? 200 : 0);
+    const addonsCost =  (formData.nnw ? 100 : 0) + 
+    (formData.assistance ? 150 : 0) + 
+    (formData.windowProtection ? 80 : 0) + 
+    (formData.tireProtection ? 50 : 0) + 
+    (formData.discountProtection ? 200 : 0);
 
     setResult(Math.round(400 + yearFactor + powerFactor + fuelFactor + youngFactor + extras + addonsCost));
     setIsSent(false);

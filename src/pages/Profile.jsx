@@ -27,13 +27,11 @@ const Profile = () => {
           collection(db, "offers"), 
           where("email", "==", user.email)
         );
-
         const querySnapshot = await getDocs(q);
         const offersData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-
         offersData.sort((a, b) => {
           const dateA = a.createdAt?.seconds || 0;
           const dateB = b.createdAt?.seconds || 0;

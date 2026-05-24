@@ -24,7 +24,7 @@ const Register = () => {
       toast.success("Konto utworzone!");
       navigate('/');
     } catch (error) {
-      toast.error("Błąd rejestracji.");
+      toast.error("Hasło jest za krótkie.");
     }
   };
 

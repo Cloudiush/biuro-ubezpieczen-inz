@@ -10,16 +10,13 @@ import emailjs from '@emailjs/browser';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('quotes');
-
   const [quotes, setQuotes] = useState([]);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [finalPrice, setFinalPrice] = useState('');
   const [adminMessage, setAdminMessage] = useState('');
-  
   const [contactMessages, setContactMessages] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [replyText, setReplyText] = useState('');
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -61,7 +58,6 @@ const AdminPanel = () => {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       const pdfBlob = pdf.output('blob');
-
       const storageRef = ref(storage, `offers/Oferta_${selectedQuote.id}_${Date.now()}.pdf`);
       await uploadBytes(storageRef, pdfBlob);
       const pdfUrl = await getDownloadURL(storageRef);
@@ -83,14 +79,14 @@ const AdminPanel = () => {
       }
 
       await emailjs.send(
-        'service_ecr5zxe', 
-        'template_pxdo309', 
+        import.meta.env.VITE_EMAILJS_SERVICE_ID, 
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         {
           to_email: selectedQuote.userEmail,
           to_name: selectedQuote.firstName,
           message: `${adminMessage}\n\nLink do Twojej oferty PDF: ${pdfUrl}`,
         }, 
-        'lWkknHp8cLL9UjRc4'
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
 
       toast.update(toastId, { render: "Oferta wysłana!", type: "success", isLoading: false, autoClose: 3000 });
@@ -113,14 +109,14 @@ const AdminPanel = () => {
 
     try {
       await emailjs.send(
-        'service_ecr5zxe', 
-        'template_l2edg3k',
+        import.meta.env.VITE_EMAILJS_SERVICE_ID, 
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         {
           to_email: selectedContact.email,
           to_name: selectedContact.name || 'Klient',
           message: replyText
         }, 
-        'lWkknHp8cLL9UjRc4'
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
 
       toast.update(toastId, { render: "Odpowiedź wysłana!", type: "success", isLoading: false, autoClose: 3000 });
