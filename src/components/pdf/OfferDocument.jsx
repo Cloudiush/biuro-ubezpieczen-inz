@@ -1,5 +1,13 @@
 import React from 'react';
 
+const fuelTypesPL = {
+  'PETROL': 'Benzyna',
+  'DIESEL': 'Diesel',
+  'LPG': 'Gaz (LPG)',
+  'EV': 'Elektryczny',
+  'HYBRID': 'Hybryda'
+};
+
 const OfferDocument = ({ quote, id }) => {
   if (!quote) return null;
 
@@ -51,7 +59,7 @@ const OfferDocument = ({ quote, id }) => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px' }}>
           <p style={{ margin: 0 }}>Marka i Model: <strong>{quote.brand} {quote.model}</strong></p>
           <p style={{ margin: 0 }}>Rok produkcji: <strong>{quote.carYear}</strong></p>
-          <p style={{ margin: 0 }}>Paliwo: <strong>{quote.engineType}</strong></p>
+          <p style={{ margin: 0 }}>Paliwo: <strong>{fuelTypesPL[quote.engineType] || quote.engineType}</strong></p>
           <p style={{ margin: 0 }}>Wiek kierowcy: <strong>{quote.age} lat</strong></p>
         </div>
       </div>
