@@ -8,6 +8,14 @@ import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import emailjs from '@emailjs/browser';
 
+const fuelTypesPL = {
+  'PETROL': 'Benzyna',
+  'DIESEL': 'Diesel',
+  'LPG': 'Gaz (LPG)',
+  'EV': 'Elektryczny',
+  'HYBRID': 'Hybryda'
+};
+
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('quotes');
   const [quotes, setQuotes] = useState([]);
@@ -180,7 +188,7 @@ const AdminPanel = () => {
                     <p className="info-label">Dane Pojazdu</p>
                     <p>Auto: <strong>{selectedQuote.brand} {selectedQuote.model} ({selectedQuote.carYear})</strong></p>
                     <p>Silnik: <strong>{selectedQuote.engineCapacity} cm3, {selectedQuote.enginePower} kW</strong></p>
-                    <p>Paliwo: <strong>{selectedQuote.engineType}</strong></p>
+                    <p>Paliwo: <strong>{fuelTypesPL[selectedQuote.engineType] || selectedQuote.engineType}</strong></p>
                     <p>Przebieg: <strong>{selectedQuote.mileage} km</strong></p>
                   </div>
                 </div>
